@@ -61,19 +61,20 @@ struct CPU
 	[N - Negative,V - Overflow,R - Reseve,B - Break,D - Decimal,I - Interrupt,Z - Zero,C - Carry]
 	______7______,______6_____,_____5_____,____4____,_____3_____,_______2_____,____1___,____0____
 	*/
+	Byte N : 1, V : 1, R : 1, B : 1, D : 1, I : 1, Z : 1, C : 1;
 	Byte Status;
+	void setFlag(StatusBit flag,bool b)
+	{
+		Status |= b << flag;
+	}
 	void setFlag(StatusBit flag)
 	{
 		Status |= 1 << flag;
 	}
-	void setFlag(StatusBit flag, Byte otherFlag)
-	{
-		Status |= otherFlag << flag;
-	}
 	void setLDAStatus()
 	{
-		if(A==0)setFlag(StatusBit::Zero);
-		setFlag(StatusBit::Negative,A);
+		setFlag(StatusBit::Zero, A == 0);
+		setFlag(StatusBit::Negative,(A & 0b10000000) > 0);
 	}
 
 	Memory memory;
@@ -82,6 +83,7 @@ struct CPU
 		PC = 0xFFFC;
 		SP = (Byte)0x0100 + 0xFD;
 		A = X = Y = 0;
+		N = V = R = B = D = I = Z = C = 0;
 		Status = 0;
 		memory.Initialise();
 		cycles = 0;
@@ -123,11 +125,13 @@ struct CPU
 			{
 				Byte addr = FetchByte();
 				A = FetchByte(addr);
+				setLDAStatus();
 			}break;
 			case Instructions::LDA_ZPX:
 			{
 				Byte addr = FetchByte();
 				A = FetchByte(Add(addr,X));
+				setLDAStatus();
 			}
 			default:
 				break;

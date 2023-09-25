@@ -113,7 +113,31 @@ SCENARIO("Reading instructions")
     cpu.Reset();
     GIVEN("reading instruction LDA_ZERO_PAGE")
     {
-
+        WHEN("giving zero page addr")
+        {
+            cpu.memory[0xFFFC] = Instructions::LDA_ZP;
+            cpu.memory[0xFFFD] = 0x10;
+            cpu.memory[0x10] = 0x05;
+            cpu.Execute(3, Instructions::LDA_ZP);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 5);
+                REQUIRE(cpu.Status == 0);
+            }
+        }        
+        cpu.Reset();
+        WHEN("giving zero page addr with zero")
+        {
+            cpu.memory[0xFFFC] = Instructions::LDA_ZP;
+            cpu.memory[0xFFFD] = 0x01;
+            cpu.memory[0x01] = 0x00;
+            cpu.Execute(3, Instructions::LDA_ZP);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 0);
+                REQUIRE(cpu.Status == 2);
+            }
+        }
     }
 }
 
