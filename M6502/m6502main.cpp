@@ -78,17 +78,17 @@ SCENARIO("flag settings")
         cpu.setFlag(cpu.StatusBit::Negative);
         REQUIRE(cpu.Status == 128);
     }
+    cpu.Reset();
 }
 
 SCENARIO("Reading instructions")
 {
     CPU cpu;
-    cpu.Reset();
     GIVEN("reading instruction LDA_IMMEDIATE")
     {
         WHEN("value of a is not zero")
         {
-            cpu.memory[0xFFFC] = Instructions::LDA_IM;
+            cpu.memory[InstructionAddr] = Instructions::LDA_IM;
             cpu.memory[0xFFFD] = 0x42;
             cpu.Execute(2, Instructions::LDA_IM);
             THEN("state of cpu")
@@ -96,11 +96,11 @@ SCENARIO("Reading instructions")
                 REQUIRE(cpu.A == 0x42);
                 REQUIRE(cpu.Status == 0);
             }
+            cpu.Reset();
         }
-        cpu.Reset();
         WHEN("value of a is ZERO")
         {
-            cpu.memory[0xFFFC] = Instructions::LDA_IM;
+            cpu.memory[InstructionAddr] = Instructions::LDA_IM;
             cpu.memory[0xFFFD] = 0x00;
             cpu.Execute(2, Instructions::LDA_IM);
             THEN("state of cpu")
@@ -108,14 +108,69 @@ SCENARIO("Reading instructions")
                 REQUIRE(cpu.A == 0);
                 REQUIRE(cpu.Status == 2);
             }
+            cpu.Reset();
         }
     }
-    cpu.Reset();
+    GIVEN("reading instruction LDA_ABSOLUTE")
+    {
+        WHEN("value of a is not zero")
+        {
+            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
+            cpu.memory[0xFFFD] = 0x01;
+            cpu.memory[0xFFFE] = 0x01;
+            cpu.Execute(4, Instructions::LDA_ABS);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 0x02);
+                REQUIRE(cpu.Status == 0);
+            }
+            cpu.Reset();
+        }
+        WHEN("value of a is ZERO")
+        {
+            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
+            cpu.memory[0xFFFD] = 0x00;
+            cpu.memory[0xFFFE] = 0x00;
+            cpu.Execute(4, Instructions::LDA_ABS);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 0x00);
+                REQUIRE(cpu.Status == 2);
+            }
+            cpu.Reset();
+        }
+        WHEN("value of a is NEGATIVE")
+        {
+            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
+            cpu.memory[0xFFFD] = 0x64;
+            cpu.memory[0xFFFE] = 0x64;
+            cpu.Execute(4, Instructions::LDA_ABS);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 0xC8);
+                REQUIRE(cpu.Status == 128);
+            }
+            cpu.Reset();
+        }
+        WHEN("value of a is POSTIVE (7th bit is 0)")
+        {
+            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
+            cpu.memory[0xFFFD] = 0x79;
+            cpu.memory[0xFFFE] = 0x06;
+            cpu.Execute(4, Instructions::LDA_ABS);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.A == 0x7F);
+                REQUIRE(cpu.Status == 0);
+            }
+            cpu.Reset();
+        }
+    }
     GIVEN("reading instruction LDA_ZERO_PAGE")
     {
         WHEN("giving zero page addr")
         {
-            cpu.memory[0xFFFC] = Instructions::LDA_ZP;
+            cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
             cpu.memory[0xFFFD] = 0x10;
             cpu.memory[0x10] = 0x05;
             cpu.Execute(3, Instructions::LDA_ZP);
@@ -124,11 +179,11 @@ SCENARIO("Reading instructions")
                 REQUIRE(cpu.A == 5);
                 REQUIRE(cpu.Status == 0);
             }
+            cpu.Reset();
         }        
-        cpu.Reset();
         WHEN("giving zero page addr with zero")
         {
-            cpu.memory[0xFFFC] = Instructions::LDA_ZP;
+            cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
             cpu.memory[0xFFFD] = 0x01;
             cpu.memory[0x01] = 0x00;
             cpu.Execute(3, Instructions::LDA_ZP);
@@ -137,6 +192,7 @@ SCENARIO("Reading instructions")
                 REQUIRE(cpu.A == 0);
                 REQUIRE(cpu.Status == 2);
             }
+            cpu.Reset();
         }
     }
 }

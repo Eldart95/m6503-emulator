@@ -1,8 +1,10 @@
 #pragma once
 
-using Byte = unsigned char; //1byte
+using Byte = unsigned char; //1byte -- 8bit
 using Word = unsigned short; //2byte
 using u32 = unsigned int;//4byte
+
+static int InstructionAddr = 0xFFFC;
 
 struct Memory
 {
@@ -27,12 +29,16 @@ struct Memory
 enum Instructions
 {
 	LDA_IM = 0xA9,
+	LDA_ABS = 0xAD,
 	LDA_ZP = 0xA5,
 	LDA_ZPX = 0xB5
 
 };
 struct CPU
 {
+	/*Constructor*/
+	CPU() { Reset(); }
+
 	/*Registers*/
 	Byte A, X, Y;
 
@@ -119,6 +125,13 @@ struct CPU
 			case Instructions::LDA_IM:
 			{
 				A = FetchByte();
+				setLDAStatus();
+			}break;
+			case Instructions::LDA_ABS:
+			{
+				Byte low = FetchByte();
+				Byte high = FetchByte();
+				A = Add(low,high);
 				setLDAStatus();
 			}break;
 			case Instructions::LDA_ZP:
