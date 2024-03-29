@@ -90,11 +90,12 @@ SCENARIO("Reading instructions")
         {
             cpu.memory[InstructionAddr] = Instructions::LDA_IM;
             cpu.memory[0xFFFD] = 0x42;
-            cpu.Execute(2, Instructions::LDA_IM);
+            cpu.Execute(Instructions::LDA_IM);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0x42);
                 REQUIRE(cpu.Status == 0);
+                REQUIRE(cpu.cycles == 2);
             }
             cpu.Reset();
         }
@@ -102,11 +103,12 @@ SCENARIO("Reading instructions")
         {
             cpu.memory[InstructionAddr] = Instructions::LDA_IM;
             cpu.memory[0xFFFD] = 0x00;
-            cpu.Execute(2, Instructions::LDA_IM);
+            cpu.Execute(Instructions::LDA_IM);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0);
                 REQUIRE(cpu.Status == 2);
+                REQUIRE(cpu.cycles == 2);
             }
             cpu.Reset();
         }
@@ -118,11 +120,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
             cpu.memory[0xFFFD] = 0x01;
             cpu.memory[0xFFFE] = 0x01;
-            cpu.Execute(4, Instructions::LDA_ABS);
+            cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0x02);
                 REQUIRE(cpu.Status == 0);
+                REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
@@ -131,11 +134,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
             cpu.memory[0xFFFD] = 0x00;
             cpu.memory[0xFFFE] = 0x00;
-            cpu.Execute(4, Instructions::LDA_ABS);
+            cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0x00);
                 REQUIRE(cpu.Status == 2);
+                REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
@@ -144,11 +148,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
             cpu.memory[0xFFFD] = 0x64;
             cpu.memory[0xFFFE] = 0x64;
-            cpu.Execute(4, Instructions::LDA_ABS);
+            cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0xC8);
                 REQUIRE(cpu.Status == 128);
+                REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
@@ -157,11 +162,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
             cpu.memory[0xFFFD] = 0x79;
             cpu.memory[0xFFFE] = 0x06;
-            cpu.Execute(4, Instructions::LDA_ABS);
+            cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0x7F);
                 REQUIRE(cpu.Status == 0);
+                REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
@@ -173,11 +179,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
             cpu.memory[0xFFFD] = 0x10;
             cpu.memory[0x10] = 0x05;
-            cpu.Execute(3, Instructions::LDA_ZP);
+            cpu.Execute(Instructions::LDA_ZP);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 5);
                 REQUIRE(cpu.Status == 0);
+                REQUIRE(cpu.cycles == 3);
             }
             cpu.Reset();
         }        
@@ -186,11 +193,12 @@ SCENARIO("Reading instructions")
             cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
             cpu.memory[0xFFFD] = 0x01;
             cpu.memory[0x01] = 0x00;
-            cpu.Execute(3, Instructions::LDA_ZP);
+            cpu.Execute(Instructions::LDA_ZP);
             THEN("state of cpu")
             {
                 REQUIRE(cpu.A == 0);
                 REQUIRE(cpu.Status == 2);
+                REQUIRE(cpu.cycles == 3);
             }
             cpu.Reset();
         }

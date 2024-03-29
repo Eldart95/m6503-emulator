@@ -97,27 +97,27 @@ struct CPU
 
 	Byte FetchByte()
 	{
-		cycles--;
+		cycles++;
 		return memory[PC++];
 	}
 
 	Byte FetchByte(Byte addr)
 	{
-		cycles--;
+		cycles++;
 		return memory[addr];
 	}
 
 	template <typename T>
 	T Add(const T& b1, const T& b2)
 	{
-		cycles--;
+		cycles++;
 		return b1 + b2;
 	}
 
-	void Execute(u32 in_cycles, Instructions instruction)
+	void Execute(Instructions instruction)
 	{
-		cycles = in_cycles;
-		while (cycles > 0)
+		bool run = true;
+		while (run)
 		{
 			Byte ins = FetchByte();
 			switch (ins)
@@ -147,6 +147,8 @@ struct CPU
 				setLDAStatus();
 			}
 			default:
+				run = false;
+				cycles--; // fetched the last byte "for nothing"
 				break;
 			}
 		}
