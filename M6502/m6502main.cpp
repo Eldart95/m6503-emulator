@@ -28,7 +28,7 @@ SCENARIO("cpu reset")
         cpu.Reset();
 
         REQUIRE(cpu.SP == (Byte)0x0100 + 0xFD);
-        REQUIRE(cpu.PC == 0xFFFC);
+        REQUIRE(cpu.PC == StartupAddr);
         REQUIRE(cpu.Status == 0);
     }
 }
@@ -88,8 +88,8 @@ SCENARIO("Reading instructions")
     {
         WHEN("value of a is not zero")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_IM;
-            cpu.memory[0xFFFD] = 0x42;
+            cpu.memory[StartupAddr] = Instructions::LDA_IM;
+            cpu.memory[StartupAddr + 1] = 0x42;
             cpu.Execute(Instructions::LDA_IM);
             THEN("state of cpu")
             {
@@ -101,8 +101,8 @@ SCENARIO("Reading instructions")
         }
         WHEN("value of a is ZERO")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_IM;
-            cpu.memory[0xFFFD] = 0x00;
+            cpu.memory[StartupAddr] = Instructions::LDA_IM;
+            cpu.memory[StartupAddr + 1] = 0x00;
             cpu.Execute(Instructions::LDA_IM);
             THEN("state of cpu")
             {
@@ -117,67 +117,129 @@ SCENARIO("Reading instructions")
     {
         WHEN("value of a is not zero")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
-            cpu.memory[0xFFFD] = 0x01;
-            cpu.memory[0xFFFE] = 0x01;
+            cpu.memory[StartupAddr] = Instructions::LDA_ABS;
+            cpu.memory[StartupAddr + 1] = 0xA1;
+            cpu.memory[StartupAddr + 2] = 0xB;
+            cpu.memory[0xA1 + 0xB] = 0xA;
             cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
-                REQUIRE(cpu.A == 0x02);
+                REQUIRE(cpu.A == 10);
                 REQUIRE(cpu.Status == 0);
                 REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
+        
         WHEN("value of a is ZERO")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
-            cpu.memory[0xFFFD] = 0x00;
-            cpu.memory[0xFFFE] = 0x00;
+            cpu.memory[StartupAddr] = Instructions::LDA_ABS;
+            cpu.memory[StartupAddr + 1] = 0xBB;
+            cpu.memory[StartupAddr + 2] = 0x00;
+            cpu.memory[0xBB + 0x00] = 0;
             cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
-                REQUIRE(cpu.A == 0x00);
+                REQUIRE(cpu.A == 0);
                 REQUIRE(cpu.Status == 2);
                 REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
+        
         WHEN("value of a is NEGATIVE")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
-            cpu.memory[0xFFFD] = 0x64;
-            cpu.memory[0xFFFE] = 0x64;
+            cpu.memory[StartupAddr] = Instructions::LDA_ABS;
+            cpu.memory[StartupAddr + 1] = 0x12;
+            cpu.memory[StartupAddr + 2] = 0x21;
+            cpu.memory[0x12 + 0x21] = 0xFD;
             cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
-                REQUIRE(cpu.A == 0xC8);
+                REQUIRE(cpu.A == 0xFD);
                 REQUIRE(cpu.Status == 128);
                 REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
-        WHEN("value of a is POSTIVE (7th bit is 0)")
+        WHEN("value of a is POSTIVE")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ABS;
-            cpu.memory[0xFFFD] = 0x79;
-            cpu.memory[0xFFFE] = 0x06;
+            cpu.memory[StartupAddr] = Instructions::LDA_ABS;
+            cpu.memory[StartupAddr + 1] = 0x19;
+            cpu.memory[StartupAddr + 2] = 0x06;
+            cpu.memory[0x19 + 0x06] = 0x1F;
             cpu.Execute(Instructions::LDA_ABS);
             THEN("state of cpu")
             {
-                REQUIRE(cpu.A == 0x7F);
+                REQUIRE(cpu.A == 0x1F);
+                REQUIRE(cpu.GetStatus() == 0);
+                REQUIRE(cpu.cycles == 4);
+            }
+            cpu.Reset();
+        }
+        
+    }
+    GIVEN("reading instruction LDA_ABSOLUT_X")
+    {
+        WHEN("no page cross")
+        {
+            cpu.memory[StartupAddr] = Instructions::LDA_ABSX;
+            cpu.X = 0x5f;
+            cpu.memory[StartupAddr + 1] = 0x0;
+            cpu.memory[StartupAddr + 2] = 0x0;
+            cpu.memory[cpu.X + 0x0 + 0x0] = 0x3d;
+            cpu.Execute(Instructions::LDA_ABSX);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.X == 0x5f);
+                REQUIRE(cpu.A == 0x3d);
                 REQUIRE(cpu.Status == 0);
                 REQUIRE(cpu.cycles == 4);
             }
             cpu.Reset();
         }
+        WHEN("no page cross, val is 0")
+        {
+            cpu.memory[StartupAddr] = Instructions::LDA_ABSX;
+            cpu.X = 0x5f;
+            cpu.memory[StartupAddr + 1] = 0x0;
+            cpu.memory[StartupAddr + 2] = 0x0;
+            cpu.memory[cpu.X + 0x0 + 0x0] = 0x0;
+            cpu.Execute(Instructions::LDA_ABSX);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.X == 0x5f);
+                REQUIRE(cpu.A == 0x0);
+                REQUIRE(cpu.Status == 2);
+                REQUIRE(cpu.cycles == 4);
+            }
+            cpu.Reset();
+        }
+        WHEN("no page cross, val is positive")
+        {
+            cpu.memory[StartupAddr] = Instructions::LDA_ABSX;
+            cpu.X = 0xa2;
+            cpu.memory[StartupAddr + 1] = 0x02;
+            cpu.memory[StartupAddr + 2] = 0x0;
+            cpu.memory[cpu.X + 0x02 + 0x0] = 0xa4;
+            cpu.Execute(Instructions::LDA_ABSX);
+            THEN("state of cpu")
+            {
+                REQUIRE(cpu.X == 0xa2);
+                REQUIRE(cpu.A == 0xa4);
+                REQUIRE(cpu.Status == 0);
+                REQUIRE(cpu.cycles == 4);
+            }
+            cpu.Reset();
+        }
+
     }
     GIVEN("reading instruction LDA_ZERO_PAGE")
     {
         WHEN("giving zero page addr")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
-            cpu.memory[0xFFFD] = 0x10;
+            cpu.memory[StartupAddr] = Instructions::LDA_ZP;
+            cpu.memory[StartupAddr + 1] = 0x10;
             cpu.memory[0x10] = 0x05;
             cpu.Execute(Instructions::LDA_ZP);
             THEN("state of cpu")
@@ -190,8 +252,8 @@ SCENARIO("Reading instructions")
         }        
         WHEN("giving zero page addr with zero")
         {
-            cpu.memory[InstructionAddr] = Instructions::LDA_ZP;
-            cpu.memory[0xFFFD] = 0x01;
+            cpu.memory[StartupAddr] = Instructions::LDA_ZP;
+            cpu.memory[StartupAddr + 1] = 0x01;
             cpu.memory[0x01] = 0x00;
             cpu.Execute(Instructions::LDA_ZP);
             THEN("state of cpu")

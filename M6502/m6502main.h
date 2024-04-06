@@ -4,7 +4,9 @@ using Byte = unsigned char; //1byte -- 8bit
 using Word = unsigned short; //2byte
 using u32 = unsigned int;//4byte
 
-static int InstructionAddr = 0xFFFC;
+static Word StartupAddr = 0xE000;
+static Byte LowStartupAddr = 0x00;
+static Byte HighStartupAddr = 0xE0;
 
 struct Memory
 {
@@ -31,7 +33,8 @@ enum Instructions
 	LDA_IM = 0xA9,
 	LDA_ABS = 0xAD,
 	LDA_ZP = 0xA5,
-	LDA_ZPX = 0xB5
+	LDA_ZPX = 0xB5,
+	LDA_ABSX = 0xBD
 
 };
 struct CPU
@@ -79,20 +82,31 @@ struct CPU
 	}
 	void setLDAStatus()
 	{
+		Z = (A >> 7 | 0);
+		N = (A << 7) & 1;
 		setFlag(StatusBit::Zero, A == 0);
 		setFlag(StatusBit::Negative,(A & 0b10000000) > 0);
+	}
+	Byte GetStatus()
+	{
+		return N | V | R | B | D | I | Z | C;
 	}
 
 	Memory memory;
 	void Reset()
 	{
-		PC = 0xFFFC;
+		memory.Initialise();
+		PC = 0xFFFC; // then also read FFFD 
+		memory[PC] = LowStartupAddr;
+		PC++; //FFFD
+		memory[PC] = HighStartupAddr;
+		
+		PC = StartupAddr;
+		cycles = 0;
 		SP = (Byte)0x0100 + 0xFD;
 		A = X = Y = 0;
 		N = V = R = B = D = I = Z = C = 0;
 		Status = 0;
-		memory.Initialise();
-		cycles = 0;
 	}
 
 	Byte FetchByte()
@@ -102,6 +116,12 @@ struct CPU
 	}
 
 	Byte FetchByte(Byte addr)
+	{
+		cycles++;
+		return memory[addr];
+	}
+
+	Byte FetchByte(Word addr)
 	{
 		cycles++;
 		return memory[addr];
@@ -131,7 +151,23 @@ struct CPU
 			{
 				Byte low = FetchByte();
 				Byte high = FetchByte();
-				A = Add(low,high);
+				Word addr = low + high;
+				A = FetchByte(addr);
+				setLDAStatus();
+			}break;
+			case Instructions::LDA_ABSX:
+			{
+				Byte low = FetchByte();
+				Byte high = FetchByte();
+				Word addr = low + X;
+				A = FetchByte(addr);
+				if (addr < low)
+				{
+					/*page cross, since we overflew and went back to 0*/
+					/*we can also check if low + X > 0xff, same thing*/
+					Word effectiveAddr = Word(high) << 8 | low;
+					A = FetchByte(effectiveAddr);
+				}
 				setLDAStatus();
 			}break;
 			case Instructions::LDA_ZP:
@@ -143,9 +179,9 @@ struct CPU
 			case Instructions::LDA_ZPX:
 			{
 				Byte addr = FetchByte();
-				A = FetchByte(Add(addr,X));
+				A = FetchByte(Add(addr, X));
 				setLDAStatus();
-			}
+			}break;
 			default:
 				run = false;
 				cycles--; // fetched the last byte "for nothing"
