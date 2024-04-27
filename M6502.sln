@@ -7,12 +7,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "M6502", "M6502\M6502.vcxpro
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Catch2|x64 = Catch2|x64
+		Catch2|x86 = Catch2|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Catch2|x64.ActiveCfg = Catch2|x64
+		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Catch2|x64.Build.0 = Catch2|x64
+		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Catch2|x86.ActiveCfg = Catch2|Win32
+		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Catch2|x86.Build.0 = Catch2|Win32
 		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Debug|x64.ActiveCfg = Debug|x64
 		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Debug|x64.Build.0 = Debug|x64
 		{CD5988B5-692B-4E10-A0AF-8C3D5A388CA4}.Debug|x86.ActiveCfg = Debug|Win32

@@ -1,44 +1,19 @@
 #pragma once
+#ifndef CATCH2
+#include <iostream>
+#endif
+#include "definitions.h"
+#include "memory.h"
 
-using Byte = unsigned char; //1byte -- 8bit
-using Word = unsigned short; //2byte
-using u32 = unsigned int;//4byte
-
-static Word StartupAddr = 0xE000;
-static Byte LowStartupAddr = 0x00;
-static Byte HighStartupAddr = 0xE0;
-
-struct Memory
-{
-	static constexpr u32 stackSize = 65536;
-	Byte Data[stackSize];
-
-	Byte operator[](u32 index) const
-	{
-		return Data[index];
-	}
-	Byte& operator[](u32 index)
-	{
-		return Data[index];
-	}
-
-	void Initialise()
-	{
-		memset(Data, 0, stackSize);
-	}
-};
-
-enum Instructions
-{
-	LDA_IM = 0xA9,
-	LDA_ABS = 0xAD,
-	LDA_ZP = 0xA5,
-	LDA_ZPX = 0xB5,
-	LDA_ABSX = 0xBD
-
-};
 struct CPU
 {
+	static CPU& GetCPU()
+	{
+		static CPU    instance; // Guaranteed to be destroyed.
+		// Instantiated on first use.
+		return instance;
+	}
+
 	/*Constructor*/
 	CPU() { Reset(); }
 
@@ -66,6 +41,7 @@ struct CPU
 		Overflow = 0x06,
 		Negative = 0x07,
 	};
+
 	/*
 	[N - Negative,V - Overflow,R - Reseve,B - Break,D - Decimal,I - Interrupt,Z - Zero,C - Carry]
 	______7______,______6_____,_____5_____,____4____,_____3_____,_______2_____,____1___,____0____
@@ -93,6 +69,7 @@ struct CPU
 	}
 
 	Memory memory;
+
 	void Reset()
 	{
 		memory.Initialise();
@@ -127,14 +104,22 @@ struct CPU
 		return memory[addr];
 	}
 
-	template <typename T>
-	T Add(const T& b1, const T& b2)
+	void printStatus() const
 	{
-		cycles++;
-		return b1 + b2;
+		std::string status = std::string("CPU status report: \n")
+			+= std::string("Registers: \n")
+			+= std::string("A: ") += std::to_string(A)
+			+= std::string("   X: ") += std::to_string(X)
+			+= std::string("   Y: ") += std::to_string(Y)
+			+= std::string("\n Program Counter: ") += std::to_string(PC)
+			+= std::string("\n Stack Pointer: ") += std::to_string(SP)
+			+= std::string("\n Status: ") += std::to_string(Status)
+			+= std::string("\n Total Cycles: ") += std::to_string(cycles);
+
+		std::cout << status << "\n";
 	}
 
-	void Execute(Instructions instruction)
+	void Execute()
 	{
 		bool run = true;
 		while (run)
@@ -160,13 +145,26 @@ struct CPU
 				Byte low = FetchByte();
 				Byte high = FetchByte();
 				Word addr = low + X;
-				A = FetchByte(addr);
-				if (addr < low)
+				A = FetchByte((Word)(addr + high));
+				if (255 < addr)
 				{
 					/*page cross, since we overflew and went back to 0*/
 					/*we can also check if low + X > 0xff, same thing*/
-					Word effectiveAddr = Word(high) << 8 | low;
-					A = FetchByte(effectiveAddr);
+					cycles++;
+				}
+				setLDAStatus();
+			}break;
+			case Instructions::LDA_ABSY:
+			{
+				Byte low = FetchByte();
+				Byte high = FetchByte();
+				Word addr = low + Y;
+				A = FetchByte((Word)(addr + high));
+				if (255 < addr)
+				{
+					/*page cross, since we overflew and went back to 0*/
+					/*we can also check if low + X > 0xff, same thing*/
+					cycles++;
 				}
 				setLDAStatus();
 			}break;
@@ -179,7 +177,28 @@ struct CPU
 			case Instructions::LDA_ZPX:
 			{
 				Byte addr = FetchByte();
-				A = FetchByte(Add(addr, X));
+				Byte effectiveAddr = FetchByte(addr) + X;
+				A = FetchByte(effectiveAddr);
+				setLDAStatus();
+			}break;
+			case Instructions::LDA_ZPX_IND:
+			{
+				Byte pointerToAddr = FetchByte();
+				Byte addrToRead = FetchByte(Byte(pointerToAddr + X));
+				Byte lowAddr = FetchByte(Byte(addrToRead));
+				Byte highAddr = FetchByte(Byte(addrToRead + 1));
+				Word effectiveAddr = (Word)highAddr + Word(lowAddr);
+				A = FetchByte(effectiveAddr);
+				setLDAStatus();
+			}break;
+			case Instructions::LDA_ZPY_IND:
+			{
+				Byte pointerToAddr = FetchByte();
+				Byte addrToRead = FetchByte(Byte(pointerToAddr + Y));
+				Byte lowAddr = FetchByte(Byte(addrToRead));
+				Byte highAddr = FetchByte(Byte(addrToRead + 1));
+				Word effectiveAddr = (Word)highAddr + Word(lowAddr);
+				A = FetchByte(effectiveAddr);
 				setLDAStatus();
 			}break;
 			default:
